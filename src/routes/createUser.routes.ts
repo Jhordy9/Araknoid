@@ -8,7 +8,9 @@ const usersRouter = Router();
 
 usersRouter.get('/', async (request, response) => {
   const userRepository = getRepository(User);
-  const users = await userRepository.find();
+  const users = await userRepository.find({
+    select: ['nickName', 'mainLane', 'secondaryLane', 'elo'],
+  });
 
   return response.json(users);
 });
