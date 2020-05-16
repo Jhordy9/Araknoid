@@ -1,57 +1,63 @@
-import { getRepository } from 'typeorm';
-import { hash } from 'bcryptjs';
+import { inject, injectable } from 'tsyringe';
 
 import AppError from '@shared/errors/AppError';
+import IUsersRepository from '@modules/users/repositories/IUsersRepository';
 import User from '@modules/users/infra/typeorm/entities/User';
 import ICreateUserDTO from '@modules/users/dtos/ICreateUserDTO';
+import IHashProvider from '@modules/users/provider/HashProvider/models/IHashProvider';
 
+@injectable()
 class CreateUserService {
-  public async execute({
-    login,
-    email,
-    password,
-    nickName,
-    mainLane,
-    secondaryLane,
+  constructor(
+    @inject('usersRepository')
+    private usersRepository: IUsersRepository,
+
+    @inject('BCryptHashProvider')
+    private hashProvider: IHashProvider,
+  ) {
+    /** */
+  }
+
+  async execute({
     elo,
+    email,
+    login,
+    mainLane,
+    nickName,
+    password,
+    secondaryLane,
   }: ICreateUserDTO): Promise<User> {
-    const userRepository = getRepository(User);
+    const checkLoginExists = await this.usersRepository.findByLogin(login);
 
-    const checkUserLogin = await userRepository.findOne({
-      where: { login },
-    });
-
-    if (checkUserLogin) {
-      throw new AppError('login/email or nick already used', 401);
-    }
-    const checkUserEmail = await userRepository.findOne({
-      where: { email },
-    });
-
-    if (checkUserEmail) {
-      throw new AppError('login/email or nick already used', 401);
-    }
-    const checkUserNickName = await userRepository.findOne({
-      where: { nickName },
-    });
-
-    if (checkUserNickName) {
-      throw new AppError('login/email or nick already used', 401);
+    if (checkLoginExists) {
+      throw new AppError('login, email or nick name already used.');
     }
 
-    const hashPassword = await hash(password, 8);
+    const checkEmailExists = await this.usersRepository.findByEmail(email);
 
-    const user = userRepository.create({
+    if (checkEmailExists) {
+      throw new AppError('login, email or nick name already used.');
+    }
+
+    const checkNickNameExists = await this.usersRepository.findByNickName(
+      nickName,
+    );
+
+    if (checkNickNameExists) {
+      throw new AppError('login, email or nick name already used.');
+    }
+
+    const hashPassword = await this.hashProvider.generateHash(password);
+
+    const user = await this.usersRepository.create({
       login,
       email,
-      password: hashPassword,
       nickName,
+      password: hashPassword,
+      elo,
       mainLane,
       secondaryLane,
-      elo,
     });
-
-    await userRepository.save(user);
 
     return user;
   }
