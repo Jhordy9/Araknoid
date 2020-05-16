@@ -1,18 +1,9 @@
 import { getRepository } from 'typeorm';
 import { hash } from 'bcryptjs';
-import AppError from '../errors/AppError';
 
-import User from '../models/User';
-
-interface Request {
-  login: string;
-  email: string;
-  password: string;
-  nickName: string;
-  mainLane: string;
-  secondaryLane: string;
-  elo: string;
-}
+import AppError from '@shared/errors/AppError';
+import User from '@modules/users/infra/typeorm/entities/User';
+import ICreateUserDTO from '@modules/users/dtos/ICreateUserDTO';
 
 class CreateUserService {
   public async execute({
@@ -23,7 +14,7 @@ class CreateUserService {
     mainLane,
     secondaryLane,
     elo,
-  }: Request): Promise<User> {
+  }: ICreateUserDTO): Promise<User> {
     const userRepository = getRepository(User);
 
     const checkUserLogin = await userRepository.findOne({
